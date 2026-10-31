@@ -8,4 +8,6 @@ interface TransactionRepository {
     suspend fun insertTransaction(
         transaction: Transaction
         )
+
+    fun getThreeLatestTransactions(): Flow<List<Transaction>>
 }

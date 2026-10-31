@@ -6,6 +6,7 @@ import com.messenger.kotlincoroutinespractice.domain.model.category.Category
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.Transaction
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.TransactionType
 import com.messenger.kotlincoroutinespractice.domain.usecases.GetCategoriesUseCase
+import com.messenger.kotlincoroutinespractice.domain.usecases.GetThreeLatestTransactionsUseCase
 import com.messenger.kotlincoroutinespractice.domain.usecases.GetTotalExpenseUseCase
 import com.messenger.kotlincoroutinespractice.domain.usecases.GetTotalIncomeUseCase
 import com.messenger.kotlincoroutinespractice.domain.usecases.GetTotalSumUseCase
@@ -28,7 +29,8 @@ data class MainUiState(
     val totalExpense: Long = 0L,
     val balance: Long = 0L,
     val isAddTransactionDialogVisible: Boolean = false,
-    val isAddCategoryDialogVisible: Boolean = false
+    val isAddCategoryDialogVisible: Boolean = false,
+    val threeLatestTransaction: List<Transaction> = emptyList()
 )
 
 @HiltViewModel
@@ -36,21 +38,31 @@ class MainScreenViewModel @Inject constructor(
     private val insertTransactionUseCase: InsertTransactionUseCase,
     private val getTotalExpenseUseCase: GetTotalExpenseUseCase,
     private val getTotalIncomeUseCase: GetTotalIncomeUseCase,
-    private val getTotalSumUseCase: GetTotalSumUseCase,
     private val getTransactionsUseCase: GetTransactionsUseCase,
+    private val threeTransactionsUseCase: GetThreeLatestTransactionsUseCase,
     private val getCategoriesUseCase: GetCategoriesUseCase,
     private val insertCategoryUseCase: InsertCategoryUseCase
 ): ViewModel() {
 
     private val isAddTransactionDialogVisible = MutableStateFlow(false)
     private val isAddCategoryDialogVisible = MutableStateFlow(false)
+
     val uiState: StateFlow<MainUiState> = combine(
         getTransactionsUseCase(),
         getCategoriesUseCase(),
         getTotalIncomeUseCase(),
         getTotalExpenseUseCase(),
-        combine(isAddTransactionDialogVisible, isAddCategoryDialogVisible) { tx, cat -> tx to cat }
-    ) { transactions, categories, totalIncome, totalExpense, (isAddTxVisible, isAddCatVisible) ->
+        combine(
+            threeTransactionsUseCase(),
+            combine(
+                isAddTransactionDialogVisible,
+                isAddCategoryDialogVisible
+            ) { tx, cat -> tx to cat }
+        ) { latest, dialog -> latest to dialog }
+    ) { transactions, categories, totalIncome, totalExpense, extra ->
+
+        val (latestTransaction, dialogs) = extra
+        val (isAddTxVisible, isAddCatVisible) = dialogs
         MainUiState(
             transactions = transactions,
             categories = categories,
@@ -58,7 +70,8 @@ class MainScreenViewModel @Inject constructor(
             totalExpense = totalExpense,
             balance = totalIncome - totalExpense,
             isAddTransactionDialogVisible = isAddTxVisible,
-            isAddCategoryDialogVisible = isAddCatVisible
+            isAddCategoryDialogVisible = isAddCatVisible,
+            threeLatestTransaction = latestTransaction
         )
     }.stateIn(
         scope = viewModelScope,

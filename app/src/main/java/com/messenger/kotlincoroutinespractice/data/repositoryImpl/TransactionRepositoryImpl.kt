@@ -27,4 +27,10 @@ class TransactionRepositoryImpl @Inject constructor(
         transactionDao.insertTransaction(transaction)
     }
 
+    override fun getThreeLatestTransactions(): Flow<List<Transaction>> {
+        return transactionDao.getLatestTransaction().map { transactionEntities ->
+            transactionEntities.map { it.toDomain() }
+        }
+    }
+
 }
