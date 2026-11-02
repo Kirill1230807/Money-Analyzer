@@ -1,4 +1,6 @@
-package com.example.compose
+package com.messenger.kotlincoroutinespractice.presentation.ui.theme
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 val primaryLight = Color(0xFF4C662B)
@@ -216,6 +218,42 @@ val surfaceContainerLowDarkHighContrast = Color(0xFF1E201A)
 val surfaceContainerDarkHighContrast = Color(0xFF2F312A)
 val surfaceContainerHighDarkHighContrast = Color(0xFF3A3C35)
 val surfaceContainerHighestDarkHighContrast = Color(0xFF454840)
+
+/**
+ * Організація кольорів транзакцій та фінансових блоків (Доходи, Витрати, Баланс).
+ * Кольорові значення збережено оригінальними.
+ */
+object TransactionColors {
+    val incomeLight = Color(0xFF2E7D32)
+    val incomeDark = Color(0xFF81C784)
+    val incomeContainerLight = Color(0xFFE8F5E9)
+    val incomeContainerDark = Color(0xFF1E3A24)
+
+    val expenseLight = Color(0xFFC62828)
+    val expenseDark = Color(0xFFE57373)
+    val expenseContainerLight = Color(0xFFFFEBEE)
+    val expenseContainerDark = Color(0xFF3E1E1E)
+
+    val balanceText = Color(0xFF2E7D32)
+    val balanceBadge = Color(0xFF81C784)
+
+    @Composable
+    fun incomeColor(isDark: Boolean = isSystemInDarkTheme()): Color =
+        if (isDark) incomeDark else incomeLight
+
+    @Composable
+    fun expenseColor(isDark: Boolean = isSystemInDarkTheme()): Color =
+        if (isDark) expenseDark else expenseLight
+
+    @Composable
+    fun incomeContainer(isDark: Boolean = isSystemInDarkTheme()): Color =
+        if (isDark) incomeContainerDark else incomeContainerLight
+
+    @Composable
+    fun expenseContainer(isDark: Boolean = isSystemInDarkTheme()): Color =
+        if (isDark) expenseContainerDark else expenseContainerLight
+}
+
 
 
 

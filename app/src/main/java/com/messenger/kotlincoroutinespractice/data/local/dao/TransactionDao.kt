@@ -20,4 +20,7 @@ interface TransactionDao {
 
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
+
+    @Query("SELECT * FROM transactions ORDER By date DESC LIMIT 3")
+    fun getLatestTransaction(): Flow<List<TransactionEntity>>
 }

@@ -14,20 +14,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Money
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
@@ -61,22 +58,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.compose.backgroundDark
 import com.messenger.kotlincoroutinespractice.domain.model.category.Category
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.Transaction
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.TransactionType
 import com.messenger.kotlincoroutinespractice.presentation.ui.theme.AppTheme
-import com.messenger.kotlincoroutinespractice.presentation.ui.theme.AppTheme
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.messenger.kotlincoroutinespractice.presentation.ui.theme.TransactionColors
 
 @Composable
 fun MainScreen(
-    viewModel: MainScreenViewModel = hiltViewModel()
+    viewModel: MainScreenViewModel = hiltViewModel(),
+    onNavigateToTransactionHistory: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -87,7 +80,9 @@ fun MainScreen(
         onAddCategoryClick = viewModel::showAddCategoryDialog,
         onDismissCategoryDialog = viewModel::dismissAddCategoryDialog,
         onCreateCategory = viewModel::addCategory,
-        onCreateTransaction = viewModel::addTransaction
+        onCreateTransaction = viewModel::addTransaction,
+        onNavigateToSettings = onNavigateToSettings,
+        onNavigateToTransactionHistory = onNavigateToTransactionHistory
     )
 }
 
@@ -100,21 +95,33 @@ fun MainScreenContent(
     onAddCategoryClick: () -> Unit = {},
     onDismissCategoryDialog: () -> Unit = {},
     onCreateCategory: (String) -> Unit = {},
-    onCreateTransaction: (amount: Long, categoryId: Long, description: String?, type: TransactionType) -> Unit = { _, _, _, _ -> }
+    onCreateTransaction: (amount: Long, categoryId: Long, description: String?, type: TransactionType) -> Unit = { _, _, _, _ -> },
+    onNavigateToSettings: () -> Unit,
+    onNavigateToTransactionHistory: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Головний екран",
+                        text = "Expense Analyzer",
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                 },
+                actions = {
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Налаштування"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
             )
         }
     ) { innerPadding ->
@@ -149,7 +156,6 @@ fun MainScreenContent(
                     isIncome = false
                 )
             }
-            // Блок доходу та витрат
 
             // Кнопки для дій
             Row(
@@ -168,7 +174,7 @@ fun MainScreenContent(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Додати транзакцію",
-                        fontSize = 13.sp
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
 
@@ -184,52 +190,17 @@ fun MainScreenContent(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Створити категорію",
-                        fontSize = 13.sp
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
 
-            // Заголовок списку транзакцій
-            Text(
-                text = "Історія транзакцій",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+            // Відображення останні 3 транзакції
+            ThreeLatestTransactionBlock(
+                transactions = uiState.threeLatestTransaction,
+                categories = uiState.categories,
+                onHistoryClick = onNavigateToTransactionHistory
             )
-
-            // Відображення транзакцій як список (LazyColumn)
-            if (uiState.transactions.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Транзакцій поки немає",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(
-                        items = uiState.transactions,
-                        key = { it.id }
-                    ) { transaction ->
-                        val categoryName = uiState.categories
-                            .find { it.id == transaction.categoryId }?.name
-                            ?: "Категорія #${transaction.categoryId}"
-
-                        TransactionItem(
-                            transaction = transaction,
-                            categoryName = categoryName
-                        )
-                    }
-                }
-            }
         }
     }
 
@@ -261,7 +232,9 @@ fun TotalAmountCard(
     title: String,
     amount: Long
 ) {
-    val backgroundColor = Color(0xFF81C784)
+    val backgroundColor = TransactionColors.balanceBadge
+    val textColor = TransactionColors.balanceText
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(contentColor = backgroundColor),
@@ -276,33 +249,33 @@ fun TotalAmountCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = textColor,
+                    fontWeight = FontWeight.Medium
+                )
+
                 Box(
                     modifier = Modifier
                         .size(35.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF81C784)),
+                        .background(backgroundColor),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "₴",
                         style = MaterialTheme.typography.headlineSmall,
-                        color = Color(0xFF2E7D32),
+                        color = textColor,
                         fontWeight = FontWeight.Medium
                     )
                 }
-
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color(0xFF2E7D32),
-                    fontWeight = FontWeight.Medium
-                )
             }
             Text(
                 text = "$amount ₴",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF2E7D32)
+                color = textColor
             )
         }
     }
@@ -317,15 +290,15 @@ private fun SummaryCard(
 ) {
     val isDark = isSystemInDarkTheme()
     val backgroundColor = if (isIncome) {
-        if (isDark) Color(0xFF1E3A24) else Color(0xFFE8F5E9)
+        TransactionColors.incomeContainer(isDark)
     } else {
-        if (isDark) Color(0xFF3E1E1E) else Color(0xFFFFEBEE)
+        TransactionColors.expenseContainer(isDark)
     }
 
     val contentColor = if (isIncome) {
-        if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
+        TransactionColors.incomeColor(isDark)
     } else {
-        if (isDark) Color(0xFFE57373) else Color(0xFFC62828)
+        TransactionColors.expenseColor(isDark)
     }
 
     val icon = if (isIncome) {
@@ -363,7 +336,7 @@ private fun SummaryCard(
                 }
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.titleMedium,
                     color = contentColor,
                     fontWeight = FontWeight.Medium
                 )
@@ -374,83 +347,6 @@ private fun SummaryCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = contentColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun TransactionItem(
-    transaction: Transaction,
-    categoryName: String
-) {
-    val isIncome = transaction.type == TransactionType.INCOME
-    val isDark = isSystemInDarkTheme()
-    val amountColor = if (isIncome) {
-        if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
-    } else {
-        if (isDark) Color(0xFFE57373) else Color(0xFFC62828)
-    }
-    val icon = if (isIncome) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
-    val formattedDate = remember(transaction.date) {
-        SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(transaction.date))
-    }
-
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(amountColor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = amountColor
-                )
-            }
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = categoryName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                val description = transaction.description
-                if (!description.isNullOrBlank()) {
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-
-            Text(
-                text = "${if (isIncome) "+" else "-"}${transaction.amount} ₴",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = amountColor
             )
         }
     }
@@ -469,6 +365,7 @@ private fun AddCategoryDialog(
         title = {
             Text(
                 text = "Створити категорію",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -482,7 +379,7 @@ private fun AddCategoryDialog(
                         categoryName = it
                         isError = false
                     },
-                    label = { Text("Назва категорії") },
+                    label = { Text("Назва категорії", style = MaterialTheme.typography.bodyMedium) },
                     singleLine = true,
                     isError = isError,
                     modifier = Modifier.fillMaxWidth()
@@ -507,18 +404,17 @@ private fun AddCategoryDialog(
                     }
                 }
             ) {
-                Text("Зберегти")
+                Text("Зберегти", style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Скасувати")
+                Text("Скасувати", style = MaterialTheme.typography.labelLarge)
             }
         }
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddTransactionDialog(
     categories: List<Category>,
@@ -538,6 +434,7 @@ private fun AddTransactionDialog(
         title = {
             Text(
                 text = "Додати транзакцію",
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -553,14 +450,14 @@ private fun AddTransactionDialog(
                     FilterChip(
                         selected = selectedType == TransactionType.EXPENSE,
                         onClick = { selectedType = TransactionType.EXPENSE },
-                        label = { Text("Витрата") },
+                        label = { Text("Витрата", style = MaterialTheme.typography.labelLarge) },
                         modifier = Modifier.weight(1f)
                     )
 
                     FilterChip(
                         selected = selectedType == TransactionType.INCOME,
                         onClick = { selectedType = TransactionType.INCOME },
-                        label = { Text("Дохід") },
+                        label = { Text("Дохід", style = MaterialTheme.typography.labelLarge) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -574,7 +471,7 @@ private fun AddTransactionDialog(
                             errorMessage = null
                         }
                     },
-                    label = { Text("Сума (грн)") },
+                    label = { Text("Сума (грн)", style = MaterialTheme.typography.bodyMedium) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
@@ -606,7 +503,7 @@ private fun AddTransactionDialog(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Створити категорію")
+                                Text("Створити категорію", style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -616,13 +513,13 @@ private fun AddTransactionDialog(
                             value = selectedCategory?.name ?: "Оберіть категорію",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Категорія") },
+                            label = { Text("Категорія", style = MaterialTheme.typography.bodyMedium) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { isDropdownExpanded = true },
                             trailingIcon = {
                                 TextButton(onClick = { isDropdownExpanded = true }) {
-                                    Text("Змінити")
+                                    Text("Змінити", style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                         )
@@ -634,7 +531,7 @@ private fun AddTransactionDialog(
                         ) {
                             categories.forEach { category ->
                                 DropdownMenuItem(
-                                    text = { Text(category.name) },
+                                    text = { Text(category.name, style = MaterialTheme.typography.bodyLarge) },
                                     onClick = {
                                         selectedCategory = category
                                         isDropdownExpanded = false
@@ -650,7 +547,7 @@ private fun AddTransactionDialog(
                 OutlinedTextField(
                     value = descriptionText,
                     onValueChange = { descriptionText = it },
-                    label = { Text("Опис (необов'язково)") },
+                    label = { Text("Опис (необов'язково)", style = MaterialTheme.typography.bodyMedium) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -685,12 +582,12 @@ private fun AddTransactionDialog(
                     }
                 }
             ) {
-                Text("Додати")
+                Text("Додати", style = MaterialTheme.typography.labelLarge)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Скасувати")
+                Text("Скасувати", style = MaterialTheme.typography.labelLarge)
             }
         }
     )
@@ -701,7 +598,7 @@ private fun AddTransactionDialog(
     name = "Main Screen - Light"
 )
 @Composable
-private fun MainScreenPreview() {
+private fun MainScreenLightPreview() {
     val sampleCategories = listOf(
         Category(id = 1, name = "Продукти", icon = null, isActive = true),
         Category(id = 2, name = "Зарплата", icon = null, isActive = true)
@@ -723,6 +620,14 @@ private fun MainScreenPreview() {
             description = "Покупки в супермаркеті",
             date = System.currentTimeMillis() - 3600000,
             type = TransactionType.EXPENSE
+        ),
+        Transaction(
+            id = 3,
+            categoryId = 1,
+            amount = 850,
+            description = "Покупки в супермаркеті",
+            date = System.currentTimeMillis() - 3600000,
+            type = TransactionType.EXPENSE
         )
     )
 
@@ -732,8 +637,11 @@ private fun MainScreenPreview() {
                 transactions = sampleTransactions,
                 categories = sampleCategories,
                 totalIncome = 15000,
-                totalExpense = 850
-            )
+                totalExpense = 1700,
+                threeLatestTransaction = sampleTransactions
+            ),
+            onNavigateToSettings = {},
+            onNavigateToTransactionHistory = {}
         )
     }
 }
@@ -766,6 +674,14 @@ private fun MainScreenDarkPreview() {
             description = "Покупки в супермаркеті",
             date = System.currentTimeMillis() - 3600000,
             type = TransactionType.EXPENSE
+        ),
+        Transaction(
+            id = 3,
+            categoryId = 1,
+            amount = 850,
+            description = "Покупки в супермаркеті",
+            date = System.currentTimeMillis() - 3600000,
+            type = TransactionType.EXPENSE
         )
     )
 
@@ -775,8 +691,11 @@ private fun MainScreenDarkPreview() {
                 transactions = sampleTransactions,
                 categories = sampleCategories,
                 totalIncome = 15000,
-                totalExpense = 850
-            )
+                totalExpense = 1700,
+                threeLatestTransaction = sampleTransactions
+            ),
+            onNavigateToSettings = {},
+            onNavigateToTransactionHistory = {}
         )
     }
 }

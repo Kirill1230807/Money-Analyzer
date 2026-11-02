@@ -12,6 +12,7 @@ coroutines = "1.11.0"
 room = "2.8.5"
 hilt = "2.60.1"
 hiltNavigationCompose = "1.4.0"
+navigationCompose = "2.8.8"
 ksp = "2.3.12"
 
 [libraries]
@@ -45,6 +46,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
