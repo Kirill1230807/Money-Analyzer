@@ -25,15 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.messenger.kotlincoroutinespractice.domain.model.category.Category
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.Transaction
 import com.messenger.kotlincoroutinespractice.domain.model.transaction.TransactionType
 import com.messenger.kotlincoroutinespractice.presentation.ui.theme.AppTheme
+import com.messenger.kotlincoroutinespractice.presentation.ui.theme.TransactionColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -42,19 +41,24 @@ import java.util.Locale
 fun ThreeLatestTransactionBlock(
     transactions: List<Transaction>?,
     categories: List<Category>,
-    onHistoryClick: () -> Unit,
-    onTransactionClick: (Transaction) -> Unit
+    onHistoryClick: () -> Unit
 ) {
     if (transactions.isNullOrEmpty()) {
         Card(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Створіть нову транзакцію")
+                Text(
+                    text = "Створіть нову транзакцію",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     } else {
@@ -86,7 +90,10 @@ fun ThreeLatestTransactionBlock(
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Переглянути історію транзакцій")
+                    Text(
+                        text = "Переглянути історію транзакцій",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
         }
@@ -98,15 +105,15 @@ fun TransactionRow(transaction: Transaction, categories: List<Category>) {
     Row(
         modifier = Modifier.fillMaxWidth()
     ) {
-        val category = categories.first { category -> category.id == transaction.categoryId }
-        val categoryName = category.name
+        val category = categories.firstOrNull { category -> category.id == transaction.categoryId }
+        val categoryName = category?.name ?: "Без категорії"
         val description = transaction.description
         val isIncome = transaction.type == TransactionType.INCOME
         val isDark = isSystemInDarkTheme()
         val amountColor = if (isIncome) {
-            if (isDark) Color(0xFF81C784) else Color(0xFF2E7D32)
+            TransactionColors.incomeColor(isDark)
         } else {
-            if (isDark) Color(0xFFE57373) else Color(0xFFC62828)
+            TransactionColors.expenseColor(isDark)
         }
         val icon = if (isIncome) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward
         val formattedDate = remember(transaction.date) {
@@ -132,15 +139,13 @@ fun TransactionRow(transaction: Transaction, categories: List<Category>) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = categoryName,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
 
                 if (!description.isNullOrBlank()) {
                     Text(
                         text = description,
-                        fontSize = 14.sp,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -148,14 +153,12 @@ fun TransactionRow(transaction: Transaction, categories: List<Category>) {
 
                 Text(
                     text = formattedDate,
-                    fontSize = 12.sp,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
             }
             Text(
                 text = if (isIncome) "${transaction.amount} ₴" else "-${transaction.amount} ₴",
-                fontSize = 16.sp,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = amountColor
@@ -202,8 +205,7 @@ private fun ThreeLatestTransactionBlockPreview() {
         ThreeLatestTransactionBlock(
             transactions = sampleTransactions,
             categories = sampleCategories,
-            onHistoryClick = {},
-            onTransactionClick = {}
+            onHistoryClick = {}
         )
     }
 }
@@ -215,8 +217,7 @@ private fun ThreeLatestTransactionEmptyBlockPreview() {
         ThreeLatestTransactionBlock(
             transactions = emptyList(),
             categories = emptyList(),
-            onHistoryClick = {},
-            onTransactionClick = {}
+            onHistoryClick = {}
         )
     }
 }

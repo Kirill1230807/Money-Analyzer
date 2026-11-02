@@ -5,7 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.messenger.kotlincoroutinespractice.presentation.screen.main.MainScreen
+import com.messenger.kotlincoroutinespractice.presentation.navigation.AppNavHost
 import com.messenger.kotlincoroutinespractice.presentation.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                MainScreen()
+                AppNavHost()
             }
         }
     }
