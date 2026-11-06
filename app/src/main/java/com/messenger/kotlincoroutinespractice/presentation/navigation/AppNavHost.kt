@@ -1,5 +1,15 @@
 package com.messenger.kotlincoroutinespractice.presentation.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,9 +34,11 @@ import androidx.navigation.compose.composable
 import com.messenger.kotlincoroutinespractice.presentation.screen.main.MainScreen
 import com.messenger.kotlincoroutinespractice.presentation.screen.transactionsHistory.TransactionHistory
 
+private const val TRANSITION_DURATION = 350
+
 /**
  * Головний граф навігації додатку.
- * Поєднує [Screen] маршрути та відображає відповідні composable-екрани.
+ * Поєднує [Screen] маршрути та відображає відповідні composable-екрани з плавними анімаціями переходу.
  */
 @Composable
 fun AppNavHost(
@@ -37,7 +49,56 @@ fun AppNavHost(
     NavHost(
         navController = navigationState.navController,
         startDestination = startDestination,
-        modifier = modifier
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+
+        // Анімація при переході вперед (новий екран з'являється справа)
+        enterTransition = {
+            slideInHorizontally(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                initialOffsetX = { fullWidth -> fullWidth }
+            ) + fadeIn(
+                animationSpec = tween(TRANSITION_DURATION, easing = LinearOutSlowInEasing)
+            ) + scaleIn(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                initialScale = 0.96f
+            )
+        },
+        // Анімація для поточного екрану при переході далі (зсув вліво з ефектом паралаксу)
+        exitTransition = {
+            slideOutHorizontally(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> - (fullWidth * 0.25f).toInt() }
+            ) + fadeOut(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + scaleOut(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                targetScale = 0.96f
+            )
+        },
+        // Анімація для попереднього екрану при поверненні назад (повернення зліва)
+        popEnterTransition = {
+            slideInHorizontally(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                initialOffsetX = { fullWidth -> - (fullWidth * 0.25f).toInt() }
+            ) + fadeIn(
+                animationSpec = tween(TRANSITION_DURATION, easing = LinearOutSlowInEasing)
+            ) + scaleIn(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                initialScale = 0.96f
+            )
+        },
+        // Анімація при поверненні назад (поточний екран виходить вправо)
+        popExitTransition = {
+            slideOutHorizontally(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                targetOffsetX = { fullWidth -> fullWidth }
+            ) + fadeOut(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing)
+            ) + scaleOut(
+                animationSpec = tween(TRANSITION_DURATION, easing = FastOutSlowInEasing),
+                targetScale = 0.96f
+            )
+        }
     ) {
         // Головний екран
         composable(route = Screen.Main.route) {
